@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: http-success-rate
+  labels:
+    app.kubernetes.io/name: podinfo
+spec:
+  args:
+    - name: namespace
+    - name: service
+    - name: prometheus-address
+      value: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+  metrics:
+    - name: http-success-rate
+      interval: 1m
+      count: 5
+      # Abort when fewer than 99 percent of requests to the canary succeed.
+      # An empty result (no traffic yet) also fails, so a canary that serves
+      # nothing cannot pass by accident.
+      successCondition: len(result) > 0 && result[0] >= 0.99
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: "{{args.prometheus-address}}"
+          query: |
+            sum(rate(http_requests_total{namespace="{{args.namespace}}",service="{{args.service}}",status!~"5.."}[2m]))
+            /
+            sum(rate(http_requests_total{namespace="{{args.namespace}}",service="{{args.service}}"}[2m]))

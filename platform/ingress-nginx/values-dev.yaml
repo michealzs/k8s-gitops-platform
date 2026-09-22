@@ -1,0 +1,6 @@
+controller:
+  replicaCount: 1
+  minAvailable: 1
+  config:
+    # Dev keeps upstream errors visible in the browser.
+    custom-http-errors: ""

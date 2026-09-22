@@ -1,0 +1,35 @@
+# Sync windows for prod. Both windows set manualSync: true, so an operator can
+# still sync by hand outside them (see docs/runbook.md, break glass). Automated
+# syncs, including selfHeal, wait for the window.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  syncWindows:
+    # Workloads ship Monday to Friday, 09:00 to 17:00 UTC.
+    - kind: allow
+      schedule: "0 9 * * 1-5"
+      duration: 8h
+      timeZone: UTC
+      applications:
+        - "*"
+      manualSync: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  syncWindows:
+    # Platform components can roll at any time on weekdays, but never on a
+    # weekend without a person deciding to do it.
+    - kind: deny
+      schedule: "0 0 * * 6"
+      duration: 48h
+      timeZone: UTC
+      applications:
+        - "*"
+      manualSync: true

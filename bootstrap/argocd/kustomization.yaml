@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Argo CD managing itself. The first install is done with helm (see README,
+# "Bootstrap a cluster"); after that this Application takes over.
+resources:
+  - application.yaml

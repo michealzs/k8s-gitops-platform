@@ -1,0 +1,34 @@
+prometheus:
+  prometheusSpec:
+    replicas: 1
+    retention: 7d
+    retentionSize: 18GB
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+    retention: 48h
+grafana:
+  replicas: 1
+  persistence:
+    enabled: false
+  ingress:
+    hosts:
+      - grafana.dev.example.com
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.dev.example.com
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-staging
+  grafana.ini:
+    server:
+      root_url: https://grafana.dev.example.com

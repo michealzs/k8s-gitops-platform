@@ -1,0 +1,53 @@
+# One Application per directory under apps/*/overlays/dev. Adding a new
+# workload means adding a directory; nothing in this file changes.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - git:
+        repoURL: https://github.com/michealzs/k8s-gitops-platform.git
+        revision: main
+        directories:
+          - path: apps/*/overlays/dev
+  template:
+    metadata:
+      # apps/<name>/overlays/dev: segment 1 is the application name.
+      name: "{{ index .path.segments 1 }}"
+      labels:
+        app.kubernetes.io/part-of: apps
+        environment: dev
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: apps
+      source:
+        repoURL: https://github.com/michealzs/k8s-gitops-platform.git
+        targetRevision: main
+        path: "{{ .path.path }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ index .path.segments 1 }}"
+      ignoreDifferences:
+        # The HPA owns replica counts once the app is running.
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas
+      syncPolicy:
+        # Dev tracks main continuously. Anything merged is live within minutes.
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - RespectIgnoreDifferences=true
+  syncPolicy:
+    # Deleting a directory removes the Application and its resources.
+    preserveResourcesOnDeletion: false

@@ -1,0 +1,21 @@
+# Shared values for the Karpenter controller. Cluster name, interruption
+# queue and IAM role live in values-<env>.yaml. The controller runs on the
+# small managed node group from terraform-aws-platform; the chart's default
+# affinity keeps it off the nodes it launches itself.
+logLevel: info
+settings:
+  featureGates:
+    spotToSpotConsolidation: true
+podDisruptionBudget:
+  maxUnavailable: 1
+controller:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: kube-prometheus-stack

@@ -1,0 +1,61 @@
+# One Application per directory under apps/*/overlays/prod. Adding a new
+# workload means adding a directory; nothing in this file changes.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - git:
+        repoURL: https://github.com/michealzs/k8s-gitops-platform.git
+        revision: main
+        directories:
+          - path: apps/*/overlays/prod
+  template:
+    metadata:
+      # apps/<name>/overlays/prod: segment 1 is the application name.
+      name: "{{ index .path.segments 1 }}"
+      labels:
+        app.kubernetes.io/part-of: apps
+        environment: prod
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: apps
+      source:
+        repoURL: https://github.com/michealzs/k8s-gitops-platform.git
+        targetRevision: main
+        path: "{{ .path.path }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ index .path.segments 1 }}"
+      ignoreDifferences:
+        # The HPA owns replica counts once the app is running.
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas
+        - group: argoproj.io
+          kind: Rollout
+          jsonPointers:
+            - /spec/replicas
+        # Argo Rollouts adds the pod template hash to the stable and canary
+        # Service selectors while a canary runs.
+        - group: ""
+          kind: Service
+          jsonPointers:
+            - /spec/selector/rollouts-pod-template-hash
+      syncPolicy:
+        # Prod is synced by a person, inside the sync window on the apps
+        # project. There is no automated policy on purpose.
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - RespectIgnoreDifferences=true
+  syncPolicy:
+    # Deleting a directory removes the Application and its resources.
+    preserveResourcesOnDeletion: false

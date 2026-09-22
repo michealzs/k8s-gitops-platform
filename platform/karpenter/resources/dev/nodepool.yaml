@@ -1,0 +1,61 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: general
+spec:
+  template:
+    metadata:
+      labels:
+        node-class: general
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: default
+      # Nodes are recycled on a schedule so they pick up AMI updates and never
+      # accumulate state.
+      expireAfter: 168h
+      terminationGracePeriod: 30m
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values:
+            - spot
+            - on-demand
+        - key: kubernetes.io/arch
+          operator: In
+          values:
+            - amd64
+        - key: kubernetes.io/os
+          operator: In
+          values:
+            - linux
+        - key: karpenter.k8s.aws/instance-category
+          operator: In
+          values:
+            - c
+            - m
+            - r
+        - key: karpenter.k8s.aws/instance-generation
+          operator: Gt
+          values:
+            - "5"
+        - key: karpenter.k8s.aws/instance-size
+          operator: NotIn
+          values:
+            - nano
+            - micro
+            - small
+  disruption:
+    # Replace underutilized nodes with cheaper or fewer ones, and remove
+    # empty ones, after they have been in that state for a minute.
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
+    budgets:
+      - nodes: "10%"
+  # Hard ceiling for the pool. Karpenter stops launching nodes at this point
+  # and pods stay pending, which is the alert in kube-prometheus-stack values.
+  limits:
+    cpu: "32"
+    memory: 128Gi
+  weight: 10

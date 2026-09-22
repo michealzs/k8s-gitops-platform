@@ -1,0 +1,8 @@
+domainFilters:
+  - dev.example.com
+txtOwnerId: dev-eks
+# Dev may delete records it created, so torn-down previews do not leave stale DNS.
+policy: sync
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/dev-eks-external-dns

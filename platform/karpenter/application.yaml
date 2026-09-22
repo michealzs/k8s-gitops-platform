@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: karpenter
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  sources:
+    # OCI chart. The registry is declared in bootstrap/argocd/values.yaml so
+    # Argo CD knows to pull it with the OCI protocol.
+    - repoURL: public.ecr.aws/karpenter
+      chart: karpenter
+      targetRevision: 1.14.0
+      helm:
+        releaseName: karpenter
+        valueFiles:
+          - $values/platform/karpenter/values.yaml
+    - repoURL: https://github.com/michealzs/k8s-gitops-platform.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    # Upstream recommends kube-system so the controller is treated as a
+    # system component.
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

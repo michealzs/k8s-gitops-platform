@@ -1,0 +1,10 @@
+domainFilters:
+  - example.com
+excludeDomains:
+  - dev.example.com
+txtOwnerId: prod-eks
+# Prod never deletes records on its own. Removing a record is a deliberate, manual step.
+policy: upsert-only
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/prod-eks-external-dns

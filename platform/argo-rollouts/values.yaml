@@ -1,0 +1,19 @@
+# Shared values for Argo Rollouts. The nginx traffic router is built in, so no
+# traffic routing plugins are needed for the canary in apps/podinfo.
+installCRDs: true
+keepCRDs: true
+controller:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: kube-prometheus-stack
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+dashboard:
+  enabled: false

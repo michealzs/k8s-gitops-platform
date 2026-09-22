@@ -1,0 +1,35 @@
+# Shared values for cert-manager. Environment differences live in values-<env>.yaml.
+crds:
+  enabled: true
+  # Keep the CRDs (and every Certificate) if the release is ever uninstalled.
+  keep: true
+global:
+  leaderElection:
+    # Default is kube-system; keeping leases in the release namespace needs less RBAC.
+    namespace: cert-manager
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+webhook:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+cainjector:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

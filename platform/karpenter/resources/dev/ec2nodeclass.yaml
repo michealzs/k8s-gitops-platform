@@ -1,0 +1,36 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: default
+spec:
+  # Amazon Linux 2023 EKS-optimized AMI. Karpenter drifts and replaces nodes
+  # when a new AMI is published; pin with alias al2023@v<date> to hold one.
+  amiSelectorTerms:
+    - alias: al2023@latest
+  # Instance profile role for the nodes, created in terraform-aws-platform.
+  role: KarpenterNodeRole-dev-eks
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: dev-eks
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: dev-eks
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: 50Gi
+        volumeType: gp3
+        iops: 3000
+        throughput: 125
+        encrypted: true
+        deleteOnTermination: true
+  # IMDSv2 only, one hop, so pods cannot reach the node's instance role.
+  metadataOptions:
+    httpEndpoint: enabled
+    httpProtocolIPv6: disabled
+    httpPutResponseHopLimit: 1
+    httpTokens: required
+  tags:
+    environment: dev
+    cluster: dev-eks
+    managed-by: karpenter

@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Cluster platform components installed from upstream Helm charts and this repository
+  sourceRepos:
+    - https://github.com/michealzs/k8s-gitops-platform.git
+    - https://argoproj.github.io/argo-helm
+    - https://charts.jetstack.io
+    - https://kubernetes-sigs.github.io/external-dns/
+    - https://charts.external-secrets.io
+    - https://kubernetes.github.io/ingress-nginx
+    - public.ecr.aws/karpenter
+    - https://prometheus-community.github.io/helm-charts
+    - https://kyverno.github.io/kyverno/
+    - https://kubernetes-sigs.github.io/metrics-server/
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Workloads under apps/, one namespace per application
+  sourceRepos:
+    - https://github.com/michealzs/k8s-gitops-platform.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "*"
+  # Applications may create their own namespace and nothing else at cluster scope.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  # Quotas and limit ranges are set by the platform, never by an application.
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ResourceQuota
+    - group: ""
+      kind: LimitRange

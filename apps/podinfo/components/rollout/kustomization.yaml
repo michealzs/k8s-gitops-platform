@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# Turns the podinfo Deployment into an Argo Rollouts canary. The Rollout
+# references the Deployment's pod template through workloadRef, so the pod
+# spec lives in exactly one place (base/deployment.yaml) and dev keeps a plain
+# Deployment. The Deployment itself is scaled to zero; the Rollout owns the
+# ReplicaSets.
+resources:
+  - rollout.yaml
+  - service-canary.yaml
+  - analysistemplate.yaml
+
+patches:
+  - path: patch-deployment-scale-zero.yaml
+  - path: patch-hpa-target.yaml

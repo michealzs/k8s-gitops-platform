@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Kyverno ClusterPolicies applied to every cluster through the kyverno-policies
+# Application. All policies run in Audit mode: violations show up in
+# PolicyReports and in the Kyverno metrics scraped by Prometheus, but nothing
+# is blocked. Move a policy to Enforce only after its report is clean in prod.
+resources:
+  - require-resource-limits.yaml
+  - disallow-latest-tag.yaml
+  - require-run-as-non-root.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: platform
+      app.kubernetes.io/managed-by: argocd

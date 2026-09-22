@@ -1,0 +1,10 @@
+replicaCount: 2
+leaderElect: true
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+webhook:
+  replicaCount: 2
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/prod-eks-external-secrets

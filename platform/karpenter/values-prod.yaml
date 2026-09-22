@@ -1,0 +1,7 @@
+replicas: 2
+settings:
+  clusterName: prod-eks
+  interruptionQueue: prod-eks-karpenter
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/prod-eks-karpenter-controller

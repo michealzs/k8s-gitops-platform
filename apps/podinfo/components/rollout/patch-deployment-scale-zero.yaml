@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+spec:
+  # The Rollout owns the ReplicaSets; the Deployment only carries the pod template.
+  replicas: 0

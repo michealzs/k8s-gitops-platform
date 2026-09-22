@@ -1,0 +1,12 @@
+- op: remove
+  path: /spec/maxUnavailable
+- op: add
+  path: /spec/minAvailable
+  value: 2
+# kube-linter compares minAvailable with the Deployment's replica count, which
+# is zero on purpose in prod: the Rollout owns the three replicas (see
+# components/rollout). The check is a false positive here.
+- op: add
+  path: /metadata/annotations
+  value:
+    ignore-check.kube-linter.io/pdb-min-available: "Replicas are owned by the Rollout, not the Deployment"

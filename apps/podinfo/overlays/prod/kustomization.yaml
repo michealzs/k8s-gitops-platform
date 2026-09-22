@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: podinfo
+
+resources:
+  - ../../base
+
+# Prod ships through an Argo Rollouts canary instead of a plain Deployment.
+components:
+  - ../../components/rollout
+
+labels:
+  - pairs:
+      environment: prod
+    includeSelectors: false
+    includeTemplates: true
+
+# Bump this tag only after the same tag has run in dev.
+images:
+  - name: ghcr.io/stefanprodan/podinfo
+    newTag: 6.15.0
+
+patches:
+  - path: patch-deployment.yaml
+  - path: patch-rollout.yaml
+  - path: patch-hpa.yaml
+  - path: patch-pdb.yaml
+    target:
+      kind: PodDisruptionBudget
+      name: podinfo
+  - path: patch-ingress.yaml
+    target:
+      kind: Ingress
+      name: podinfo

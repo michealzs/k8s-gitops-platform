@@ -1,0 +1,28 @@
+# Shared values for external-dns on Route 53. Environment differences
+# (domain filter, owner id, IAM role, policy) live in values-<env>.yaml.
+provider:
+  name: aws
+sources:
+  - ingress
+  - service
+registry: txt
+txtPrefix: extdns-
+interval: 1m
+triggerLoopOnEvent: true
+logFormat: json
+env:
+  - name: AWS_DEFAULT_REGION
+    value: us-east-1
+extraArgs:
+  - --aws-zone-type=public
+  - --aws-batch-change-size=1000
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: kube-prometheus-stack
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi
+  limits:
+    memory: 128Mi

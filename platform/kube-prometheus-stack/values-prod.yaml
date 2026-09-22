@@ -1,0 +1,49 @@
+prometheus:
+  prometheusSpec:
+    replicas: 2
+    retention: 30d
+    retentionSize: 90GB
+    podAntiAffinity: hard
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 100Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        memory: 8Gi
+alertmanager:
+  alertmanagerSpec:
+    replicas: 2
+    retention: 120h
+    podAntiAffinity: hard
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 5Gi
+grafana:
+  replicas: 2
+  persistence:
+    enabled: false
+  ingress:
+    hosts:
+      - grafana.example.com
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.example.com
+  grafana.ini:
+    server:
+      root_url: https://grafana.example.com

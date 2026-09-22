@@ -1,0 +1,14 @@
+# kube-linter runs in CI against the manifests rendered by scripts/validate.sh.
+# The default check set stays on. The extra checks below are the ones that have
+# caught real problems in workload manifests before they reached a cluster.
+checks:
+  addAllBuiltIn: false
+  doNotAutoAddDefaults: false
+  include:
+    - no-liveness-probe
+    - no-readiness-probe
+    - default-service-account
+    - read-secret-from-env-var
+    - unsafe-proc-mount
+    - writable-host-mount
+  exclude: []

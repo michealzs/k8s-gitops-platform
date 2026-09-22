@@ -1,0 +1,20 @@
+# Rendered manifests written by scripts/validate.sh (RENDER_DIR=rendered)
+rendered/
+
+# Helm and kustomize scratch files
+charts/
+Chart.lock
+*.tgz
+
+# Editor and OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Never commit credentials, kubeconfigs or local overrides
+kubeconfig*
+*.kubeconfig
+.env
+*.pem
+*.key

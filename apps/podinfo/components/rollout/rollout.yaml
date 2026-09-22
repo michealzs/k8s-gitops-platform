@@ -1,0 +1,56 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: podinfo
+  labels:
+    app.kubernetes.io/name: podinfo
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: podinfo
+    scaleDown: onsuccess
+  strategy:
+    canary:
+      canaryService: podinfo-canary
+      stableService: podinfo
+      trafficRouting:
+        nginx:
+          stableIngress: podinfo
+      maxSurge: "25%"
+      maxUnavailable: 0
+      # Background analysis starts as soon as canary traffic flows and aborts
+      # the rollout on the first failed measurement.
+      analysis:
+        templates:
+          - templateName: http-success-rate
+        startingStep: 1
+        args:
+          - name: namespace
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: service
+            value: podinfo-canary
+      steps:
+        - setWeight: 10
+        - pause:
+            duration: 2m
+        - setWeight: 50
+        - pause:
+            duration: 5m
+        - analysis:
+            templates:
+              - templateName: http-success-rate
+            args:
+              - name: namespace
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: service
+                value: podinfo-canary

@@ -1,0 +1,202 @@
+# Shared values for kube-prometheus-stack. Retention, storage, replica counts
+# and hostnames live in values-<env>.yaml.
+fullnameOverride: kube-prometheus-stack
+
+crds:
+  enabled: true
+
+# EKS does not expose these control plane components, so their scrape targets
+# and alerts would only ever fire.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+defaultRules:
+  create: true
+
+prometheusOperator:
+  admissionWebhooks:
+    enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
+prometheus:
+  prometheusSpec:
+    # Pick up every ServiceMonitor, PodMonitor and PrometheusRule in any
+    # namespace that carries release=kube-prometheus-stack. Workloads opt in
+    # by adding that label (see apps/podinfo/base/servicemonitor.yaml).
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector:
+      matchLabels:
+        release: kube-prometheus-stack
+    serviceMonitorNamespaceSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector:
+      matchLabels:
+        release: kube-prometheus-stack
+    podMonitorNamespaceSelector: {}
+    ruleSelectorNilUsesHelmValues: false
+    ruleSelector:
+      matchLabels:
+        release: kube-prometheus-stack
+    ruleNamespaceSelector: {}
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        memory: 4Gi
+
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 20m
+        memory: 64Mi
+      limits:
+        memory: 256Mi
+
+grafana:
+  enabled: true
+  defaultDashboardsEnabled: true
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  grafana.ini:
+    analytics:
+      check_for_updates: false
+      reporting_enabled: false
+    users:
+      viewers_can_edit: false
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL
+      label: grafana_dashboard
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+
+# Platform alert rules. Chart-provided rules cover the Kubernetes components;
+# these cover what this repository adds on top.
+additionalPrometheusRulesMap:
+  platform:
+    groups:
+      - name: platform.ingress
+        rules:
+          - alert: IngressNginxHighErrorRate
+            expr: |
+              sum by (exported_namespace, ingress) (rate(nginx_ingress_controller_requests{status=~"5.."}[5m]))
+                /
+              sum by (exported_namespace, ingress) (rate(nginx_ingress_controller_requests[5m]))
+                > 0.05
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "More than 5 percent of requests to {{ $labels.exported_namespace }}/{{ $labels.ingress }} return 5xx"
+              description: "5xx ratio is {{ $value | humanizePercentage }} over the last 5 minutes."
+      - name: platform.certificates
+        rules:
+          - alert: CertificateExpiringSoon
+            expr: |
+              (certmanager_certificate_expiration_timestamp_seconds - time()) < 7 * 24 * 3600
+            for: 1h
+            labels:
+              severity: warning
+            annotations:
+              summary: "Certificate {{ $labels.namespace }}/{{ $labels.name }} expires in under 7 days"
+              description: "cert-manager has not renewed it. Inspect the Certificate, CertificateRequest and Order objects."
+          - alert: CertificateNotReady
+            expr: |
+              certmanager_certificate_ready_status{condition="False"} == 1
+            for: 30m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Certificate {{ $labels.namespace }}/{{ $labels.name }} has been not Ready for 30 minutes"
+      - name: platform.secrets
+        rules:
+          - alert: ExternalSecretNotReady
+            expr: |
+              externalsecret_status_condition{condition="Ready", status="False"} == 1
+            for: 15m
+            labels:
+              severity: warning
+            annotations:
+              summary: "ExternalSecret {{ $labels.namespace }}/{{ $labels.name }} is failing to sync"
+              description: "Check the ExternalSecret status and the IAM role bound to the external-secrets service account."
+      - name: platform.workloads
+        rules:
+          - alert: PodinfoHighErrorRate
+            expr: |
+              sum(rate(http_requests_total{job="podinfo", status=~"5.."}[5m]))
+                /
+              sum(rate(http_requests_total{job="podinfo"}[5m]))
+                > 0.01
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "podinfo is returning more than 1 percent 5xx responses"
+          - alert: RolloutDegraded
+            expr: |
+              rollout_info{phase="Degraded"} == 1
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Rollout {{ $labels.namespace }}/{{ $labels.name }} is Degraded"
+              description: "A canary analysis failed or the rollout was aborted. See docs/runbook.md for promote, abort and undo."
+      - name: platform.capacity
+        rules:
+          - alert: KarpenterNodePoolNearCpuLimit
+            expr: |
+              karpenter_nodepools_usage{resource_type="cpu"}
+                /
+              karpenter_nodepools_limit{resource_type="cpu"}
+                > 0.85
+            for: 15m
+            labels:
+              severity: warning
+            annotations:
+              summary: "NodePool {{ $labels.nodepool }} is using more than 85 percent of its CPU limit"
+              description: "Pending pods will stay pending once the limit is hit. Raise spec.limits.cpu on the NodePool or reduce demand."

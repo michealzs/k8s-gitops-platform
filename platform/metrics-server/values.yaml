@@ -1,0 +1,16 @@
+# Shared values for metrics-server, which feeds the HPA and kubectl top.
+args:
+  - --kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
+  - --metric-resolution=15s
+metrics:
+  enabled: true
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: kube-prometheus-stack
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 256Mi

@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Node configuration for the prod-eks cluster. Both resources are cluster
+# scoped and reference AWS resources tagged karpenter.sh/discovery=prod-eks
+# by terraform-aws-platform.
+resources:
+  - ec2nodeclass.yaml
+  - nodepool.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: platform

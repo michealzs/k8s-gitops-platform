@@ -1,0 +1,103 @@
+# Values for the argo-cd chart. Used once by hand during bootstrap, then by
+# Argo CD itself through bootstrap/argocd/application.yaml. The hostname is
+# overridden per cluster in bootstrap/<name>/kustomization.yaml.
+global:
+  domain: argocd.example.com
+  logging:
+    format: json
+
+configs:
+  cm:
+    # Full reconcile every 3 minutes. A GitHub webhook to /api/webhook makes
+    # merges show up sooner than that.
+    timeout.reconciliation: 180s
+    application.resourceTrackingMethod: annotation
+    # Argo CD has no built-in health assessment for Application resources.
+    # Without one, sync waves in the app-of-apps have nothing to wait on.
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {}
+      hs.status = "Progressing"
+      hs.message = ""
+      if obj.status ~= nil then
+        if obj.status.health ~= nil then
+          hs.status = obj.status.health.status
+          if obj.status.health.message ~= nil then
+            hs.message = obj.status.health.message
+          end
+        end
+      end
+      return hs
+  params:
+    # TLS terminates at ingress-nginx.
+    server.insecure: true
+    controller.status.processors: 20
+    controller.operation.processors: 10
+    # Server-side diff avoids false OutOfSync on fields mutated by admission webhooks.
+    controller.diff.server.side: true
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      g, platform-admins, role:admin
+    scopes: "[groups]"
+  repositories:
+    # Karpenter ships as an OCI chart. Declaring the registry here is what
+    # tells Argo CD to pull it with the OCI protocol. No credentials needed.
+    karpenter:
+      name: karpenter
+      url: public.ecr.aws/karpenter
+      type: helm
+      enableOCI: "true"
+
+controller:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    tls: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
+repoServer:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
+applicationSet:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
+redis:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+# SSO is wired through the cluster's identity provider in a separate change;
+# the bundled Dex and notifications controller are not used.
+dex:
+  enabled: false
+notifications:
+  enabled: false

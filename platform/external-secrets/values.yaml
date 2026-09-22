@@ -1,0 +1,30 @@
+# Shared values for External Secrets Operator. The IAM role and replica counts
+# live in values-<env>.yaml.
+installCRDs: true
+crds:
+  createClusterExternalSecret: true
+  createClusterSecretStore: true
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: kube-prometheus-stack
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+webhook:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+certController:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      memory: 128Mi

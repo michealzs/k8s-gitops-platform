@@ -1,0 +1,82 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Everything Argo CD reconciles on the dev-eks cluster. bootstrap/dev/root-app.yaml
+# points here.
+resources:
+  - ../base
+  - applicationset-apps.yaml
+  - karpenter-resources.yaml
+
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
+
+# Each platform component reads its shared values.yaml (set in
+# platform/<component>/application.yaml) and then the dev overrides below.
+# Later files win in Helm, so anything in values-dev.yaml takes precedence.
+patches:
+  - target:
+      kind: Application
+      name: argo-rollouts
+    patch: |-
+      - op: add
+        path: /spec/sources/0/helm/valueFiles/-
+        value: $values/platform/argo-rollouts/values-dev.yaml
+  - target:
+      kind: Application
+      name: cert-manager
+    patch: |-
+      - op: add
+        path: /spec/sources/0/helm/valueFiles/-
+        value: $values/platform/cert-manager/values-dev.yaml
+  - target:
+      kind: Application
+      name: external-dns
+    patch: |-
+      - op: add
+        path: /spec/sources/0/helm/valueFiles/-
+        value: $values/platform/external-dns/values-dev.yaml
+  - target:
+      kind: Application
+      name: external-secrets
+    patch: |-
+      - op: add
+        path: /spec/sources/0/helm/valueFiles/-
+        value: $values/platform/external-secrets/values-dev.yaml
+  - target:
+      kind: Application
+      name: ingress-nginx
+    patch: |-
+      - op: add
+        path: /spec/sources/0/helm/valueFiles/-
+        value: $values/platform/ingress-nginx/values-dev.yaml
+  - target:
+      kind: Application
+      name: karpenter
+    patch: |-
+      - op: add
+        path: /spec/sources/0/helm/valueFiles/-
+        value: $values/platform/karpenter/values-dev.yaml
+  - target:
+      kind: Application
+      name: kube-prometheus-stack
+    patch: |-
+      - op: add
+        path: /spec/sources/0/helm/valueFiles/-
+        value: $values/platform/kube-prometheus-stack/values-dev.yaml
+  - target:
+      kind: Application
+      name: kyverno
+    patch: |-
+      - op: add
+        path: /spec/sources/0/helm/valueFiles/-
+        value: $values/platform/kyverno/values-dev.yaml
+  - target:
+      kind: Application
+      name: metrics-server
+    patch: |-
+      - op: add
+        path: /spec/sources/0/helm/valueFiles/-
+        value: $values/platform/metrics-server/values-dev.yaml
