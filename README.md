@@ -1,5 +1,8 @@
 # k8s-gitops-platform
 
+[![CI](https://github.com/michealzs/k8s-gitops-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/michealzs/k8s-gitops-platform/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 GitOps configuration for a small production Kubernetes platform on AWS EKS: two clusters (`dev-eks` and `prod-eks`), each reconciled by its own Argo CD from this repository. Platform components come from upstream Helm charts pinned to exact versions. Workloads are plain Kustomize. Prod ships behind sync windows, manual sync and a canary analysis; dev syncs on every merge. Nothing is applied by hand after bootstrap, and nothing secret is in git.
 
 ```mermaid
