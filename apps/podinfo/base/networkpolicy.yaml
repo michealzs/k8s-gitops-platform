@@ -1,3 +1,15 @@
+# Default deny for the podinfo pods, with three explicit allows.
+#
+# What enforces this: the Amazon VPC CNI network policy agent. The vpc-cni EKS
+# addon in terraform-aws-platform runs with network policy enabled, which starts
+# the agent on every node and compiles these rules into eBPF programs on the pod
+# veth pairs. No Calico or Cilium is installed. Without that addon setting these
+# objects are accepted by the API server and enforced by nothing.
+#
+# The namespace selectors below use kubernetes.io/metadata.name, which the API
+# server sets on every namespace to the namespace name, and they name the
+# namespaces the platform Applications really install into: ingress-nginx for
+# the ingress controller, monitoring for Prometheus, kube-system for CoreDNS.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -29,7 +41,11 @@ spec:
         - port: http-metrics
           protocol: TCP
   egress:
-    # DNS only. podinfo makes no outbound calls of its own.
+    # DNS only. podinfo makes no outbound calls of its own. Both selectors sit
+    # in one peer, so this matches pods labelled k8s-app=kube-dns inside
+    # kube-system and nothing else. That label is what the EKS coredns addon
+    # puts on its pods. Egress is denied by default, so without this rule no
+    # name in the cluster resolves.
     - to:
         - namespaceSelector:
             matchLabels:

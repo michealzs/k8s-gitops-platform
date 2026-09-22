@@ -1,0 +1,36 @@
+# Cluster storage classes. There is no chart to install: the EBS CSI driver is
+# an EKS addon created by terraform-aws-platform, and the only cluster object it
+# needs is the gp3 StorageClass. Wave 0 puts the class in place well before
+# kube-prometheus-stack (wave 3) creates the claims that name it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: storage
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/michealzs/k8s-gitops-platform.git
+    targetRevision: main
+    path: platform/storage/resources
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

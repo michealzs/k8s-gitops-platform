@@ -5,6 +5,11 @@ kind: ApplicationSet
 metadata:
   name: apps
   namespace: argocd
+  annotations:
+    # Last wave. Workloads emit ServiceMonitor, and in prod Rollout and
+    # AnalysisTemplate, so the ApplicationSet is created only after every
+    # platform Application that defines those kinds has synced.
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   goTemplate: true
   goTemplateOptions:

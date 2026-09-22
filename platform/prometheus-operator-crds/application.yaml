@@ -1,0 +1,54 @@
+# The Prometheus Operator CRDs on their own, ahead of everything that needs
+# them. Almost every platform chart in this repository renders a ServiceMonitor,
+# and kube-prometheus-stack does not arrive until wave 3, so waiting for it to
+# bring the CRDs deadlocks a first sync into an empty cluster. Wave -1 puts the
+# CRDs in front of wave 0.
+#
+# kube-prometheus-stack sets crds.enabled: false (see its values.yaml) so only
+# this Application owns the monitoring.coreos.com CRDs.
+#
+# Chart 32.0.0 ships operator v0.94.0, the same operator version
+# kube-prometheus-stack 91.4.1 deploys, so the CRDs match the controller.
+# Argo CD renders Helm sources with --include-crds, which is what pulls the
+# files out of the chart's crds/ directory.
+#
+# There is no resources-finalizer here, unlike the other platform Applications.
+# Deleting this Application must not cascade into every ServiceMonitor,
+# Prometheus and PrometheusRule in the cluster.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus-operator-crds
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: platform
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: prometheus-operator-crds
+    targetRevision: 32.0.0
+    helm:
+      releaseName: prometheus-operator-crds
+  destination:
+    server: https://kubernetes.default.svc
+    # Every object here is cluster scoped; this is only the default namespace
+    # Argo CD records for the release.
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      # Never prune. A CRD removed from the render would take every custom
+      # resource of that kind with it.
+      prune: false
+      selfHeal: true
+    syncOptions:
+      # The Prometheus CRDs exceed the annotation size limit of client-side apply.
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

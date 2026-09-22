@@ -7,8 +7,9 @@ metadata:
     # kube-prometheus-stack only picks up ServiceMonitors carrying this label.
     release: kube-prometheus-stack
   annotations:
-    # Lets the app sync on a cluster where kube-prometheus-stack has not
-    # finished installing its CRDs yet.
+    # The ServiceMonitor CRD now arrives at wave -1 with
+    # prometheus-operator-crds, well before the apps ApplicationSet at wave 5,
+    # so this is only a fallback for a cluster synced out of order by hand.
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   selector:

@@ -109,8 +109,21 @@ shellcheck scripts/validate.sh
 ## What is deliberately not here
 
 - **Secrets.** Not even encrypted ones. They live in AWS Secrets Manager and arrive through External Secrets.
-- **Cluster provisioning.** VPCs, the EKS control plane, the managed node group Karpenter runs on, IAM roles for IRSA, the Route 53 zones and the Karpenter interruption queue are in `terraform-aws-platform`. This repository starts where a cluster with a kubeconfig ends.
+- **Cluster provisioning.** VPCs, the EKS control plane, the managed node group Karpenter runs on, IAM roles for IRSA and the Karpenter interruption queue are in `terraform-aws-platform`. This repository starts where a cluster with a kubeconfig ends. Route 53 hosted zones are in neither repository; see Known limitations.
 - **Application source code.** The sample workload is the public `ghcr.io/stefanprodan/podinfo` image; real services would keep their code and Dockerfiles in their own repositories and open pull requests here to bump a tag.
 - **SSO configuration and alert routing.** Both depend on the identity provider and paging tool in use and are wired in a separate, environment-specific change.
+
+## Known limitations
+
+These are real and deliberate. Each one is a value to fill in or a component to add in a real account, not a defect to work around.
+
+- **Account IDs in the IRSA annotations are placeholders.** `111122223333` (dev) and `123456789012` (prod) appear in every `values-<env>.yaml` that annotates a service account. Replace both with your real account IDs, or every controller that needs AWS fails to assume its role.
+- **No Route 53 hosted zones exist.** Neither repository creates them, because a zone outlives a cluster and usually lives in a separate account. Until `example.com` and `dev.example.com` are real zones the IAM role can write to, external-dns publishes nothing and the HTTP01 challenges behind every `letsencrypt-*` certificate never resolve.
+- **Hostnames and the ACME contact address are examples.** `argocd.example.com`, `grafana.example.com`, `podinfo.example.com` and `platform@example.com` are placeholders in the values files, overlays and ClusterIssuers. Change them together with the zones above.
+- **`us-east-1` is hardcoded in two places.** The AWS `ClusterSecretStore` and the external-dns `AWS_DEFAULT_REGION` both name it, and they have to match `aws_region` in `terraform-aws-platform`. Moving a cluster to another region means editing both.
+- **No AWS Load Balancer Controller.** `ingress-nginx` gets a network load balancer from the in-tree AWS cloud provider that ships inside EKS. That covers Service type `LoadBalancer` and nothing else: ALB-backed Ingress, IP target mode and WAF attachment need that controller installed and its own IRSA role added in `terraform-aws-platform`.
+- **Kyverno policies only audit.** Every ClusterPolicy in `policies/` uses `failureAction: Audit`, so a violating workload is reported and admitted. Flip a policy to `Enforce` once its PolicyReport is clean in prod.
+- **One sample workload.** `apps/podinfo` is the only app, so the ApplicationSet, the promotion path and the canary analysis are exercised by a single directory. A second app is a directory, but nothing here proves that at scale.
+- **Chart versions are bumped by hand.** Every `targetRevision` is an exact version and nothing watches upstream for releases. Adding a dependency bot or a scheduled job is left to whoever runs this.
 
 Maintained by Micheal ([@michealzs](https://github.com/michealzs)).

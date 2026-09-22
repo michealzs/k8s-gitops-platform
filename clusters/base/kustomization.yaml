@@ -7,6 +7,8 @@ kind: Kustomization
 # each component's values-<name>.yaml.
 resources:
   - projects.yaml
+  # Wave -1. Every chart below that renders a ServiceMonitor depends on it.
+  - ../../platform/prometheus-operator-crds
   - ../../platform/argo-rollouts
   - ../../platform/cert-manager
   - ../../platform/external-dns
@@ -16,4 +18,5 @@ resources:
   - ../../platform/kube-prometheus-stack
   - ../../platform/kyverno
   - ../../platform/metrics-server
+  - ../../platform/storage
   - kyverno-policies.yaml

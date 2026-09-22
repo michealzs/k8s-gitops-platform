@@ -1,0 +1,26 @@
+# The volume claim templates in platform/kube-prometheus-stack/values-<env>.yaml
+# ask for gp3. EKS creates only a gp2 class, so without this the Prometheus and
+# Alertmanager StatefulSets stay Pending. The provisioner is the
+# aws-ebs-csi-driver addon that terraform-aws-platform installs and grants IRSA.
+#
+# This class is deliberately not the cluster default. EKS ships gp2 carrying
+# storageclass.kubernetes.io/is-default-class "true", that object is not managed
+# from this repository, and two defaults leave the choice to whichever class the
+# API server sees last. Every claim here names its class, so the default never
+# decides anything. To hand the default to gp3, remove the annotation from gp2
+# first, then add it below.
+#
+# encrypted true with no kmsKeyId uses the account default EBS key.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  encrypted: "true"
+reclaimPolicy: Delete
+# WaitForFirstConsumer binds the volume only once a pod is scheduled, so the
+# volume lands in the zone that pod runs in.
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true

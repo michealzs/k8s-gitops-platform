@@ -2,8 +2,12 @@
 # and hostnames live in values-<env>.yaml.
 fullnameOverride: kube-prometheus-stack
 
+# The monitoring.coreos.com CRDs are installed by the prometheus-operator-crds
+# Application at wave -1, so the bundled crds subchart stays off and the two do
+# not fight over the same objects. Key confirmed against chart 91.4.1:
+# Chart.yaml gates the crds dependency on condition crds.enabled.
 crds:
-  enabled: true
+  enabled: false
 
 # EKS does not expose these control plane components, so their scrape targets
 # and alerts would only ever fire.
